@@ -6,3 +6,7 @@ authors = ["SiIky <siiky@users.noreply.github.com>"]
 [dependencies]
 unicode-width = "*"
 term_size = "*"
+
+[profile.release]
+lto = true
+panic = 'abort'

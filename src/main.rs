@@ -30,10 +30,9 @@ impl ChopWidth for String {
 }
 
 fn real_main() -> Result<(), Vec<Box<Error>>> {
-    let max_width = if let Some((w, _)) = term_size::dimensions() {
-        w
-    } else {
-        DEFAULT_MAX_WIDTH
+    let max_width = match term_size::dimensions() {
+        Some((w, _)) => w,
+        _ => DEFAULT_MAX_WIDTH,
     };
 
     let args = {
