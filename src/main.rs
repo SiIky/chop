@@ -3,6 +3,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{stdin, BufReader};
+use std::str::FromStr;
 
 extern crate term_size;
 
@@ -31,15 +32,21 @@ impl ChopWidth for String {
 }
 
 fn real_main() -> Result<(), Vec<Box<Error>>> {
-    fn should_read_stdin(args: &Vec<String>) -> bool {
-        if args.is_empty() {
-            return true;
-        }
-
-        false
+    fn read_width_option(arg: &String) -> Result<usize, <usize as FromStr>::Err> {
+        arg.chars().skip(1).collect::<String>().parse::<usize>()
     }
 
-    let max_width = match term_size::dimensions() {
+    fn should_read_stdin(args: &Vec<String>) -> Option<usize> {
+        if args.is_empty() {
+            Some(DEFAULT_MAX_WIDTH)
+        } else if args.len() == 1 {
+            read_width_option(args.first().unwrap()).ok()
+        } else {
+            None
+        }
+    }
+
+    let mut max_width = match term_size::dimensions() {
         Some((w, _)) => w,
         _ => DEFAULT_MAX_WIDTH,
     };
@@ -52,7 +59,9 @@ fn real_main() -> Result<(), Vec<Box<Error>>> {
 
     let mut errs: Vec<Box<Error>> = Vec::new();
 
-    if should_read_stdin(&args) {
+    if let Some(nmw) = should_read_stdin(&args) {
+        max_width = nmw;
+
         /* read stdin */
         let stdin = stdin();
         for line in stdin.lock().lines() {
@@ -64,6 +73,11 @@ fn real_main() -> Result<(), Vec<Box<Error>>> {
     } else {
         /* treat arguments as filenames and try to read them */
         for arg in args {
+            if let Ok(nmw) = read_width_option(&arg) {
+                max_width = nmw;
+                continue;
+            }
+
             let reader = match File::open(arg) {
                 Ok(reader) => BufReader::new(reader),
                 Err(e) => {
