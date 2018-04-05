@@ -22,6 +22,7 @@ impl ChopWidth for String {
 
         while line.width_cjk() > max_width {
             cw -= 1;
+            // TODO: Improve this, prob some `drop()`, `pop()` or similar `Chars` method
             line = line.chars().take(cw).collect();
         }
 
@@ -30,6 +31,14 @@ impl ChopWidth for String {
 }
 
 fn real_main() -> Result<(), Vec<Box<Error>>> {
+    fn should_read_stdin(args: &Vec<String>) -> bool {
+        if args.is_empty() {
+            return true;
+        }
+
+        false
+    }
+
     let max_width = match term_size::dimensions() {
         Some((w, _)) => w,
         _ => DEFAULT_MAX_WIDTH,
@@ -43,7 +52,7 @@ fn real_main() -> Result<(), Vec<Box<Error>>> {
 
     let mut errs: Vec<Box<Error>> = Vec::new();
 
-    if args.is_empty() {
+    if should_read_stdin(&args) {
         /* read stdin */
         let stdin = stdin();
         for line in stdin.lock().lines() {
@@ -72,13 +81,17 @@ fn real_main() -> Result<(), Vec<Box<Error>>> {
         }
     }
 
-    if errs.is_empty() { Ok(()) } else { Err(errs) }
+    if errs.is_empty() {
+        Ok(())
+    } else {
+        Err(errs)
+    }
 }
 
 fn main() {
     if let Err(ve) = real_main() {
         for e in ve {
-            println!("{}", e);
+            eprintln!("{}", e);
         }
     }
 }
