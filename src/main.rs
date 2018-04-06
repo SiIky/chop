@@ -37,19 +37,14 @@ fn real_main() -> Result<(), Vec<Box<Error>>> {
     }
 
     fn should_read_stdin(args: &Vec<String>) -> Option<usize> {
-        if args.is_empty() {
-            Some(DEFAULT_MAX_WIDTH)
-        } else if args.len() == 1 {
+        if args.is_empty() { /* no arguments given */
+            Some(term_size::dimensions().map_or(DEFAULT_MAX_WIDTH, |p| p.0))
+        } else if args.len() == 1 { /* a single argument was given, try to parse a width */
             read_width_option(args.first().unwrap()).ok()
-        } else {
+        } else { /* more than one argument was given, don't read from stdin */
             None
         }
     }
-
-    let mut max_width = match term_size::dimensions() {
-        Some((w, _)) => w,
-        _ => DEFAULT_MAX_WIDTH,
-    };
 
     let args = {
         let mut args: Vec<_> = env::args().collect();
@@ -58,6 +53,7 @@ fn real_main() -> Result<(), Vec<Box<Error>>> {
     };
 
     let mut errs: Vec<Box<Error>> = Vec::new();
+    let mut max_width = DEFAULT_MAX_WIDTH;
 
     if let Some(nmw) = should_read_stdin(&args) {
         max_width = nmw;
