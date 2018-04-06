@@ -3,7 +3,6 @@ use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{stdin, BufReader};
-use std::str::FromStr;
 
 extern crate term_size;
 
@@ -32,16 +31,28 @@ impl ChopWidth for String {
 }
 
 fn real_main() -> Result<(), Vec<Box<Error>>> {
-    fn read_width_option(arg: &String) -> Result<usize, <usize as FromStr>::Err> {
-        arg.chars().skip(1).collect::<String>().parse::<usize>()
+    fn read_width_option(arg: &String) -> Option<usize> {
+        if arg.is_empty() || arg.chars().nth(0).unwrap() != '-' {
+            return None;
+        }
+
+        let arg = arg.chars().skip(1).collect::<String>();
+        if arg.chars().all(|c| c.is_ascii_digit()) {
+            arg.parse::<usize>().ok()
+        } else {
+            None
+        }
     }
 
     fn should_read_stdin(args: &Vec<String>) -> Option<usize> {
-        if args.is_empty() { /* no arguments given */
+        if args.is_empty() {
+            /* no arguments given */
             Some(term_size::dimensions().map_or(DEFAULT_MAX_WIDTH, |p| p.0))
-        } else if args.len() == 1 { /* a single argument was given, try to parse a width */
-            read_width_option(args.first().unwrap()).ok()
-        } else { /* more than one argument was given, don't read from stdin */
+        } else if args.len() == 1 {
+            /* a single argument was given, try to parse a width */
+            read_width_option(args.first().unwrap())
+        } else {
+            /* more than one argument was given, don't read from stdin */
             None
         }
     }
@@ -69,7 +80,7 @@ fn real_main() -> Result<(), Vec<Box<Error>>> {
     } else {
         /* treat arguments as filenames and try to read them */
         for arg in args {
-            if let Ok(nmw) = read_width_option(&arg) {
+            if let Some(nmw) = read_width_option(&arg) {
                 max_width = nmw;
                 continue;
             }
